@@ -1,5 +1,5 @@
 <template>
-  <label :class="type == 'checkbox' ? 'flex' : 'block'">
+  <label :class="[type == 'checkbox' ? 'flex' : 'block', $attrs.class]">
     <span
       v-if="label && type != 'checkbox'"
       class="block mb-2 text-sm leading-4 text-gray-700"
@@ -13,7 +13,7 @@
         )
       "
       v-bind="inputAttributes"
-      class="placeholder-gray-500"
+      class="placeholder-gray-500 border-gray-400"
       ref="input"
       :class="[
         {
@@ -31,12 +31,13 @@
     <textarea
       v-if="type === 'textarea'"
       v-bind="inputAttributes"
+      :placeholder="placeholder"
+      class="placeholder-gray-500"
       :class="['block w-full resize-none form-textarea', inputClass]"
       ref="input"
       :value="passedInputValue"
       :disabled="disabled"
       :rows="rows || 3"
-      @blur="$emit('blur', $event)"
     ></textarea>
     <select
       v-bind="inputAttributes"
@@ -115,7 +116,7 @@ export default {
       type: String,
     },
   },
-  emits: ['blur', 'input', 'change', 'update:modelValue'],
+  emits: ['input', 'change', 'update:modelValue'],
   methods: {
     focus() {
       this.$refs.input.focus()
@@ -140,13 +141,17 @@ export default {
       return this.modelValue || null
     },
     inputAttributes() {
+      let attrs = {}
       let onInput = (e) => {
         this.$emit('input', this.getInputValue(e))
       }
       if (this.debounce) {
         onInput = debounce(onInput, this.debounce)
       }
-      return Object.assign({}, this.$attrs, {
+      if (this.type == 'checkbox') {
+        attrs.checked = this.passedInputValue
+      }
+      return Object.assign(attrs, this.$attrs, {
         onInput,
         onChange: (e) => {
           this.$emit('change', this.getInputValue(e))

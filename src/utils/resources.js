@@ -2,7 +2,8 @@ import { call, debounce } from 'frappe-ui'
 import { reactive, watch } from 'vue'
 
 let cached = {}
-let documentCache = {}
+let documentCache = reactive({})
+let listCache = reactive({})
 
 export function createResource(options, vm, getResource) {
   let cacheKey = null
@@ -58,8 +59,8 @@ export function createResource(options, vm, getResource) {
     }
 
     let validateFunction = tempOptions.validate || options.validate
-    let errorFunction = tempOptions.onError || options.onError
-    let successFunction = tempOptions.onSuccess || options.onSuccess
+    let errorFunctions = [options.onError, tempOptions.onError]
+    let successFunctions = [options.onSuccess, tempOptions.onSuccess]
 
     if (validateFunction) {
       let invalidMessage
@@ -67,12 +68,12 @@ export function createResource(options, vm, getResource) {
         invalidMessage = await validateFunction.call(vm, out.params)
         if (invalidMessage && typeof invalidMessage == 'string') {
           let error = new Error(invalidMessage)
-          handleError(error, errorFunction)
+          handleError(error, errorFunctions)
           out.loading = false
           return
         }
       } catch (error) {
-        handleError(error, errorFunction)
+        handleError(error, errorFunctions)
         out.loading = false
         return
       }
@@ -80,13 +81,15 @@ export function createResource(options, vm, getResource) {
 
     try {
       let data = await resourceFetcher(options.method, params || options.params)
-      out.data = data
+      out.data = transform(data)
       out.fetched = true
-      if (successFunction) {
-        successFunction.call(vm, data)
+      for (let fn of successFunctions) {
+        if (fn) {
+          fn.call(vm, data)
+        }
       }
     } catch (error) {
-      handleError(error, errorFunction)
+      handleError(error, errorFunctions)
     }
     out.loading = false
   }
@@ -113,14 +116,16 @@ export function createResource(options, vm, getResource) {
     out.auto = options.auto
   }
 
-  function handleError(error, errorFunction) {
+  function handleError(error, errorFunctions) {
     console.error(error)
     if (out.previousData) {
       out.data = out.previousData
     }
     out.error = error
-    if (errorFunction) {
-      errorFunction.call(vm, error)
+    for (let fn of errorFunctions) {
+      if (fn) {
+        fn.call(vm, error)
+      }
     }
   }
 
@@ -131,7 +136,17 @@ export function createResource(options, vm, getResource) {
     if (typeof data === 'function') {
       data = data.call(vm, out.data)
     }
-    out.data = data
+    out.data = transform(data)
+  }
+
+  function transform(data) {
+    if (options.transform) {
+      let returnValue = options.transform.call(vm, data)
+      if (typeof returnValue != null) {
+        return returnValue
+      }
+    }
+    return data
   }
 
   if (cacheKey && !cached[cacheKey]) {
@@ -159,69 +174,86 @@ export function createDocumentResource(options, vm) {
       }
     },
     onSuccess(data) {
-      out.doc = postprocess(data)
+      out.doc = transform(data)
+      options.setValue?.onSuccess?.call(vm, data)
     },
+    onError: options.setValue?.onError,
   }
 
   let out = reactive({
     doctype: options.doctype,
     name: options.name,
     doc: null,
-    get: createResource({
-      method: 'frappe.client.get',
-      makeParams() {
-        return {
-          doctype: out.doctype,
-          name: out.name,
-        }
+    get: createResource(
+      {
+        method: 'frappe.client.get',
+        makeParams() {
+          return {
+            doctype: out.doctype,
+            name: out.name,
+          }
+        },
+        onSuccess(data) {
+          out.doc = transform(data)
+        },
       },
-      onSuccess(data) {
-        out.doc = postprocess(data)
+      vm
+    ),
+    setValue: createResource(setValueOptions, vm),
+    setValueDebounced: createResource(
+      {
+        ...setValueOptions,
+        debounce: options.debounce || 500,
       },
-    }),
-    setValue: createResource(setValueOptions),
-    setValueDebounced: createResource({
-      ...setValueOptions,
-      debounce: options.debounce || 500,
-    }),
-    delete: createResource({
-      method: 'frappe.client.delete',
-      makeParams() {
-        return {
-          doctype: out.doctype,
-          name: out.name,
-        }
+      vm
+    ),
+    delete: createResource(
+      {
+        method: 'frappe.client.delete',
+        makeParams() {
+          return {
+            doctype: out.doctype,
+            name: out.name,
+          }
+        },
+        onSuccess() {
+          out.doc = null
+          options.delete?.onSuccess?.call(vm, data)
+        },
+        onError: options.delete?.onError,
       },
-      onSuccess() {
-        out.doc = null
-      },
-    }),
+      vm
+    ),
     update,
+    reload,
   })
 
   for (let method in options.whitelistedMethods) {
     let methodName = options.whitelistedMethods[method]
-    out[method] = createResource({
-      method: 'run_doc_method',
-      makeParams(values) {
-        return {
-          dt: out.doctype,
-          dn: out.name,
-          method: methodName,
-          args: JSON.stringify(values),
-        }
-      },
-      onSuccess(data) {
-        if (data.docs) {
-          for (let doc of data.docs) {
-            if (doc.doctype === out.doctype && doc.name === out.name) {
-              out.doc = postprocess(doc)
-              break
+    out[method] = createResource(
+      {
+        method: 'run_doc_method',
+        makeParams(values) {
+          return {
+            dt: out.doctype,
+            dn: out.name,
+            method: methodName,
+            args: JSON.stringify(values),
+          }
+        },
+        onSuccess(data) {
+          if (data.docs) {
+            for (let doc of data.docs) {
+              if (doc.doctype === out.doctype && doc.name === out.name) {
+                out.doc = transform(doc)
+                break
+              }
             }
           }
-        }
+        },
       },
-    })
+      vm
+    )
   }
 
   function update(updatedOptions) {
@@ -230,9 +262,13 @@ export function createDocumentResource(options, vm) {
     out.get.fetch()
   }
 
-  function postprocess(doc) {
-    if (options.postprocess) {
-      let returnValue = options.postprocess(doc)
+  function reload() {
+    return out.get.fetch()
+  }
+
+  function transform(doc) {
+    if (options.transform) {
+      let returnValue = options.transform.call(vm, doc)
       if (typeof returnValue === 'object') {
         return returnValue
       }
@@ -247,9 +283,149 @@ export function createDocumentResource(options, vm) {
   return out
 }
 
+function createListResource(options, vm, getResource) {
+  if (!options.doctype) return
+
+  let cacheKey = getCacheKey(options.cache)
+  if (listCache[cacheKey]) {
+    return listCache[cacheKey]
+  }
+
+  let out = reactive({
+    doctype: options.doctype,
+    fields: options.fields,
+    filters: options.filters,
+    order_by: options.order_by,
+    start: options.start,
+    limit: options.limit,
+    data: null,
+    list: createResource(
+      {
+        method: 'frappe.client.get_list',
+        makeParams() {
+          return {
+            doctype: out.doctype,
+            fields: out.fields,
+            filters: out.filters,
+            order_by: out.order_by,
+            limit_start: out.start,
+            limit_page_length: out.limit,
+          }
+        },
+        onSuccess(data) {
+          out.data = transform(data)
+          options.onSuccess?.call(vm, out.data)
+        },
+        onError: options.onError,
+      },
+      vm
+    ),
+    insert: createResource(
+      {
+        method: 'frappe.client.insert',
+        makeParams(values) {
+          return {
+            doc: {
+              doctype: out.doctype,
+              ...values,
+            },
+          }
+        },
+        onSuccess(data) {
+          out.list.fetch()
+          options.insert?.onSuccess?.call(vm, data)
+        },
+        onError: options.insert?.onError,
+      },
+      vm
+    ),
+    setValue: createResource(
+      {
+        method: 'frappe.client.set_value',
+        makeParams(options) {
+          let { name, ...values } = options
+          return {
+            doctype: out.doctype,
+            name: name,
+            fieldname: values,
+          }
+        },
+        onSuccess(data) {
+          out.list.fetch()
+          options.setValue?.onSuccess?.call(vm, data)
+        },
+        onError: options.setValue?.onError,
+      },
+      vm
+    ),
+    delete: createResource(
+      {
+        method: 'frappe.client.delete',
+        makeParams(name) {
+          return {
+            doctype: out.doctype,
+            name,
+          }
+        },
+        onSuccess(data) {
+          out.list.fetch()
+          options.delete?.onSuccess?.call(vm, data)
+        },
+        onError: options.delete?.onError,
+      },
+      vm
+    ),
+    update,
+    reload,
+    setData,
+  })
+
+  function update(updatedOptions) {
+    out.doctype = updatedOptions.doctype
+    out.fields = updatedOptions.fields
+    out.filters = updatedOptions.filters
+    out.order_by = updatedOptions.order_by
+    out.start = updatedOptions.start
+    out.limit = updatedOptions.limit
+    out.list.fetch()
+  }
+
+  function transform(data) {
+    if (options.transform) {
+      let returnValue = options.transform.call(vm, data)
+      if (typeof returnValue != null) {
+        return returnValue
+      }
+    }
+    return data
+  }
+
+  function reload() {
+    return out.list.fetch()
+  }
+
+  function setData(data) {
+    if (typeof data === 'function') {
+      data = data.call(vm, out.data)
+    }
+    out.data = data
+  }
+
+  // fetch list
+  out.list.fetch()
+
+  // cache
+  listCache[cacheKey] = out
+
+  return out
+}
+
 function createResourceForOptions(options, vm, getResource) {
   if (options.type === 'document') {
     return createDocumentResource(options, vm, getResource)
+  }
+  if (options.type === 'list') {
+    return createListResource(options, vm, getResource)
   }
   return createResource(options, vm, getResource)
 }
@@ -270,8 +446,19 @@ let createMixin = (mixinOptions) => ({
 
         if (typeof options == 'function') {
           watch(
-            () => options.call(this),
+            () => {
+              try {
+                return options.call(this)
+              } catch (error) {
+                console.warn('Failed to get resource options\n\n', error)
+                return null
+              }
+            },
             (updatedOptions, oldVal) => {
+              if (!updatedOptions) {
+                return
+              }
+
               let changed =
                 !oldVal ||
                 JSON.stringify(updatedOptions) !== JSON.stringify(oldVal)
@@ -315,6 +502,14 @@ let createMixin = (mixinOptions) => ({
     $getResource(cache) {
       let cacheKey = getCacheKey(cache)
       return cached[cacheKey] || null
+    },
+    $getDocumentResource(doctype, name) {
+      let cacheKey = getCacheKey([doctype, name])
+      return documentCache[cacheKey] || null
+    },
+    $getListResource(cache) {
+      let cacheKey = getCacheKey(cache)
+      return listCache[cacheKey] || null
     },
     $refetchResource(cache) {
       let resource = this.$getResource(cache)
