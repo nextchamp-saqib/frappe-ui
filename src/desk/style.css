@@ -1,0 +1,216 @@
+/**
+ * frappe-ui desk stylesheet.
+ *
+ * Deliberately omits `@tailwind base` so that the Tailwind preflight
+ * CSS reset does NOT clobber Bootstrap-driven Desk elements.
+ *
+ * The CSS custom-properties (design tokens) defined by the frappe-ui
+ * Tailwind plugin via `addBase` ARE included because Tailwind still
+ * runs the plugins even without the preflight reset when we use the
+ * `--no-preflight` workaround at config level.
+ */
+
+/*
+ * @tailwind base is included to emit the CSS custom-property design tokens
+ * defined by the frappe-ui Tailwind plugin via addBase().
+ * Actual browser reset (preflight) is disabled via corePlugins.preflight:false
+ * in tailwind.config.desk.js, so only our token variables get emitted here.
+ *
+ * Font: deliberately omitted — Desk loads its own fonts. frappe-ui components
+ * inherit the page font via CSS cascade.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Scoped preflight — full Tailwind preflight scoped to [data-frappe-ui]
+ * ──────────────────────────────────────────────────────────────────────
+ * `corePlugins.preflight: false` disables the global reset so Bootstrap-owned
+ * Desk DOM is untouched. But browser UA styles would still bleed *into*
+ * [data-frappe-ui] (e.g. `button { border: 2px outset }`). This block is the
+ * complete Tailwind v3 preflight re-scoped to [data-frappe-ui], so every
+ * UA reset applies exactly where we need it and nowhere else.
+ *
+ * Rules that must stay at :root (CSS custom properties, [data-theme]) are
+ * emitted by the plugin's addBase() above and are intentionally excluded here.
+ *
+ * Note: @tailwind components emits an unscoped .container rule that `important`
+ * cannot scope (it only affects utilities). container is disabled in config.
+ */
+
+/* 1. box-sizing + border reset */
+[data-frappe-ui] *,
+[data-frappe-ui] *::before,
+[data-frappe-ui] *::after {
+  box-sizing: border-box;
+  border-width: 0;
+  border-style: solid;
+  border-color: currentColor;
+}
+[data-frappe-ui] *::before,
+[data-frappe-ui] *::after {
+  --tw-content: '';
+}
+
+/* 3. Remove margin/padding defaults */
+[data-frappe-ui] blockquote,
+[data-frappe-ui] dl,
+[data-frappe-ui] dd,
+[data-frappe-ui] h1,
+[data-frappe-ui] h2,
+[data-frappe-ui] h3,
+[data-frappe-ui] h4,
+[data-frappe-ui] h5,
+[data-frappe-ui] h6,
+[data-frappe-ui] hr,
+[data-frappe-ui] figure,
+[data-frappe-ui] p,
+[data-frappe-ui] pre {
+  margin: 0;
+}
+[data-frappe-ui] fieldset {
+  margin: 0;
+  padding: 0;
+}
+[data-frappe-ui] legend {
+  padding: 0;
+}
+[data-frappe-ui] ol,
+[data-frappe-ui] ul,
+[data-frappe-ui] menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+[data-frappe-ui] dialog {
+  padding: 0;
+}
+
+/* 4. Heading font reset */
+[data-frappe-ui] h1,
+[data-frappe-ui] h2,
+[data-frappe-ui] h3,
+[data-frappe-ui] h4,
+[data-frappe-ui] h5,
+[data-frappe-ui] h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* 5. Link reset */
+[data-frappe-ui] a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
+/* 6. Strong */
+[data-frappe-ui] b,
+[data-frappe-ui] strong {
+  font-weight: bolder;
+}
+
+/* 7. Code/pre font */
+[data-frappe-ui] code,
+[data-frappe-ui] kbd,
+[data-frappe-ui] samp,
+[data-frappe-ui] pre {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 1em;
+}
+
+/* 8. Small */
+[data-frappe-ui] small {
+  font-size: 80%;
+}
+
+/* 9. Sub/sup */
+[data-frappe-ui] sub,
+[data-frappe-ui] sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+[data-frappe-ui] sub { bottom: -0.25em; }
+[data-frappe-ui] sup { top: -0.5em; }
+
+/* 10. Table */
+[data-frappe-ui] table {
+  text-indent: 0;
+  border-color: inherit;
+  border-collapse: collapse;
+}
+
+/* 11. Form elements */
+[data-frappe-ui] button,
+[data-frappe-ui] input,
+[data-frappe-ui] optgroup,
+[data-frappe-ui] select,
+[data-frappe-ui] textarea {
+  font-family: inherit;
+  font-feature-settings: inherit;
+  font-variation-settings: inherit;
+  font-size: 100%;
+  font-weight: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  margin: 0;
+  padding: 0;
+}
+[data-frappe-ui] button,
+[data-frappe-ui] select {
+  text-transform: none;
+}
+[data-frappe-ui] button,
+[data-frappe-ui] input:where([type='button']),
+[data-frappe-ui] input:where([type='reset']),
+[data-frappe-ui] input:where([type='submit']) {
+  -webkit-appearance: button;
+  background-color: transparent;
+  background-image: none;
+}
+
+/* 12. Misc resets */
+[data-frappe-ui] progress {
+  vertical-align: baseline;
+}
+[data-frappe-ui] textarea {
+  resize: vertical;
+}
+[data-frappe-ui] input::placeholder,
+[data-frappe-ui] textarea::placeholder {
+  opacity: 1;
+  color: #9ca3af;
+}
+[data-frappe-ui] button,
+[data-frappe-ui] [role='button'] {
+  cursor: pointer;
+}
+[data-frappe-ui] :disabled {
+  cursor: default;
+}
+
+/* 13. Replaced elements */
+[data-frappe-ui] img,
+[data-frappe-ui] svg,
+[data-frappe-ui] video,
+[data-frappe-ui] canvas,
+[data-frappe-ui] audio,
+[data-frappe-ui] iframe,
+[data-frappe-ui] embed,
+[data-frappe-ui] object {
+  display: block;
+  vertical-align: middle;
+}
+[data-frappe-ui] img,
+[data-frappe-ui] video {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 14. Hidden attribute */
+[data-frappe-ui] [hidden]:where(:not([hidden='until-found'])) {
+  display: none;
+}

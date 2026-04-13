@@ -1,6 +1,6 @@
 <template>
   <DialogRoot v-model:open="isOpen" @update:open="handleOpenChange">
-    <DialogPortal>
+    <DialogPortal :to="portalTarget">
       <DialogOverlay
         class="fixed inset-0 bg-black-overlay-200 dark:bg-black-overlay-700 overflow-y-auto dialog-overlay outline-none"
         :data-dialog="options.title"
@@ -122,7 +122,7 @@ import {
   DialogDescription,
   DialogClose,
 } from 'reka-ui'
-import { computed, reactive } from 'vue'
+import { computed, inject, reactive } from 'vue'
 import { Button } from '../Button'
 import FeatherIcon from '../FeatherIcon.vue'
 import LucideX from '~icons/lucide/x'
@@ -142,6 +142,23 @@ const props = withDefaults(defineProps<DialogProps>(), {
   options: () => ({}),
   disableOutsideClickToClose: false,
 })
+
+/**
+ * Portal target for the dialog overlay.
+ *
+ * Host applications that embed frappe-ui components inside a scoped
+ * [data-frappe-ui] boundary should provide this key to ensure the dialog
+ * overlay (which uses Vue's Teleport internally) is also rendered inside
+ * the same boundary — preserving Tailwind utility scoping and preventing
+ * Bootstrap element-selector bleed-in.
+ *
+ * Provide at the app root:
+ *   app.provide('frappe-ui:dialog-portal-target', '#frappe-ui-portal')
+ *
+ * The corresponding DOM element must exist before the dialog is opened,
+ * carry `data-frappe-ui`, and optionally `data-theme="light"`.
+ */
+const portalTarget = inject<string>('frappe-ui:dialog-portal-target', 'body')
 
 const emit = defineEmits<{
   /** Fired when the dialog `v-model:open` changes */
