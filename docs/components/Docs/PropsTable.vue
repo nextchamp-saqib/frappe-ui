@@ -1,84 +1,185 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Badge, Button } from 'frappe-ui'
-import LucideCode from '~icons/lucide/code-xml'
+import { computed, useSlots } from 'vue'
 
-interface itemProp {
+interface ItemProp {
   name: string
-  description: string
-  type: string
-  required: string
-  default: string
+  description?: string
+  type?: string
+  required: boolean
+  default?: string
+  deprecated?: string | boolean
 }
 
 interface Props {
-  data: itemProp[]
+  name?: string
+  data: ItemProp[]
 }
 
-const tsToggled = ref(true)
+const props = defineProps<Props>()
+const slots = useSlots()
 
-defineProps<Props>()
+const hasCustomCodeSlot = computed(() => Boolean(slots.code))
+
+const typeDefinition = computed(() => {
+  const typeName = props.name ? `${props.name}Props` : 'ComponentProps'
+  const lines = [`interface ${typeName} {`]
+
+  for (const item of props.data) {
+    const key = /^[A-Za-z_$][\w$]*$/.test(item.name)
+      ? item.name
+      : JSON.stringify(item.name)
+    const optional = item.required ? '' : '?'
+    const type = item.type || 'unknown'
+
+    lines.push(`  ${key}${optional}: ${type}`)
+  }
+
+  lines.push('}')
+  return lines.join('\n')
+})
 </script>
 
 <template>
-  <div class="flex items-center gap-3 justify-between my-5">
-    <h2 id="props" class="my-auto">Props</h2>
+  <div class="not-prose mt-2">
+    <details class="group">
+      <summary
+        class="flex rounded cursor-pointer list-none items-center gap-2 py-2 text-sm font-medium text-ink-gray-6 transition-colors hover:text-ink-gray-9"
+      >
+        <LucideChevronRight
+          class="size-4 shrink-0 transition-transform group-open:rotate-90"
+        />
+        Show types
+      </summary>
 
-    <Button size="sm" @click="tsToggled = !tsToggled">
-      <template #prefix>
-        <LucideCode class="size-4" />
-      </template>
+      <div class="mt-1 overflow-hidden rounded-xl border bg-surface-gray-1">
+        <slot v-if="hasCustomCodeSlot" name="code" />
+        <pre
+          v-else
+          class="overflow-x-auto whitespace-pre px-4 py-3 font-mono text-xs leading-6 text-ink-gray-7"
+        ><code>{{ typeDefinition }}</code></pre>
+      </div>
+    </details>
 
-      TS
-    </Button>
-  </div>
+    <div class="mt-4 hidden sm:block">
+      <table class="w-full border-collapse border-b text-left">
+        <thead>
+          <tr class="border-b">
+            <th
+              class="w-[24%] py-2.5 pr-2 text-sm font-semibold text-ink-gray-9"
+            >
+              Prop
+            </th>
+            <th
+              class="w-[20%] px-2 py-2.5 text-sm font-semibold text-ink-gray-9"
+            >
+              Default
+            </th>
+            <th
+              class="w-[56%] px-2 py-2.5 text-sm font-semibold text-ink-gray-9"
+            >
+              Type
+            </th>
+          </tr>
+        </thead>
 
-  <slot v-if="!tsToggled" name="code" />
+        <tbody>
+          <tr v-for="x in data" :key="x.name" class="border-b last:border-b-0">
+            <td class="py-2 pr-2 align-top">
+              <div
+                class="font-mono text-xs font-medium leading-6 text-ink-gray-9 break-words"
+              >
+                <span :class="{ 'line-through': x.deprecated }">{{
+                  x.name
+                }}</span
+                ><span
+                  v-if="x.required"
+                  class="text-ink-gray-5"
+                  title="Required"
+                  aria-label="required"
+                  >*</span
+                >
+              </div>
+            </td>
 
-  <table class="overflow-auto scrollbar not-prose w-full">
-    <colgroup>
-      <col class="w-[20%]" />
-      <col class="w-[20%]" />
-      <col class="w-[60%]" />
-    </colgroup>
+            <td class="px-2 py-2 align-top">
+              <div
+                class="whitespace-pre-wrap break-words font-mono text-xs leading-6 text-ink-gray-6"
+              >
+                {{ x.default || '—' }}
+              </div>
+            </td>
 
-    <tbody
-      class="[&_td]:px-3 [&_th]:px-3 [&_td]:p-2 [&_th]:p-2 [&_td]:align-top"
-    >
-      <tr class="text-left *:bg-surface-gray-2 text-ink-gray-6 *:font-semibold">
-        <th class="rounded-l">Name</th>
-        <th>Default</th>
-        <th class="rounded-r">Type</th>
-      </tr>
+            <td class="px-2 py-2 align-top">
+              <div
+                v-if="!x.deprecated"
+                class="whitespace-normal break-words font-mono text-xs leading-6 text-ink-gray-8"
+              >
+                {{ x.type || '—' }}
+              </div>
+              <p
+                v-if="typeof x.deprecated === 'string'"
+                class="whitespace-pre-wrap text-p-sm text-ink-gray-6"
+              >
+                Deprecated — {{ x.deprecated }}
+              </p>
+              <p
+                v-else-if="x.description"
+                class="mt-1 whitespace-pre-wrap text-p-sm leading-6 text-ink-gray-6"
+              >
+                {{ x.description }}
+              </p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-      <tr v-for="x in data" :key="x.name" class="border-b last:border-0">
-        <td>
-          <Badge class="w-fit !rounded-sm mb-auto flex font-mono">
-            {{ x.name + (x.required ? '*' : '') }}
-          </Badge>
-        </td>
-
-        <td class="font-mono text-sm">
+    <div class="mt-4 sm:hidden">
+      <div
+        v-for="x in data"
+        :key="x.name"
+        class="border-b last:border-b-0 py-3 grid gap-1.5"
+      >
+        <div class="flex items-baseline justify-between gap-3">
           <div
-            v-if="x.default?.includes('{')"
-            class="w-fit rounded-sm whitespace-pre px-3 py-2 leading-relaxed h-full !bg-surface-gray-1"
+            class="font-mono text-xs font-medium leading-6 text-ink-gray-9 break-all"
           >
-            {{ x.default }}
+            <span :class="{ 'line-through': x.deprecated }">{{ x.name }}</span
+            ><span
+              v-if="x.required"
+              class="text-ink-gray-5"
+              title="Required"
+              aria-label="required"
+              >*</span
+            >
           </div>
-
-          <template v-else>{{ x.default || '-' }}</template>
-        </td>
-
-        <td class="flex flex-wrap h-fit gap-2">
-          <span class="text-sm font-semibold font-mono">
-            {{ x.type }}
+          <span
+            v-if="x.default"
+            class="font-mono text-xs leading-6 text-ink-gray-6 shrink-0"
+          >
+            = {{ x.default }}
           </span>
+        </div>
 
-          <p class="text-sm text-ink-gray-5 leading-relaxed w-full">
-            {{ x.description }}
-          </p>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+        <div
+          v-if="!x.deprecated"
+          class="whitespace-normal break-words font-mono text-xs leading-6 text-ink-gray-8"
+        >
+          {{ x.type || '—' }}
+        </div>
+        <p
+          v-if="typeof x.deprecated === 'string'"
+          class="whitespace-pre-wrap text-p-sm text-ink-gray-6"
+        >
+          Deprecated — {{ x.deprecated }}
+        </p>
+        <p
+          v-else-if="x.description"
+          class="whitespace-pre-wrap text-p-sm leading-6 text-ink-gray-6"
+        >
+          {{ x.description }}
+        </p>
+      </div>
+    </div>
+  </div>
 </template>

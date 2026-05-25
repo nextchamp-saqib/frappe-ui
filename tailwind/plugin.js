@@ -4,6 +4,7 @@ import {
   generateSemanticColors,
   generateCSSVariables,
 } from './colorPalette.js'
+import { borderRadius, boxShadow, fontSize } from './tokens.js'
 
 let colorPalette = generateColorPalette()
 let semanticColors = generateSemanticColors()
@@ -15,7 +16,7 @@ let globalStyles = (theme) => ({
     'font-optical-sizing': 'auto',
   },
   'html, body, button, p, span, div': {
-    fontVariationSettings: "'opsz' 24",
+    fontVariationSettings: "'opsz' 24, 'cv11' 1",
     WebkitFontSmoothing: 'antialiased',
     MozOsxFontSmoothing: 'grayscale',
   },
@@ -52,163 +53,14 @@ export default plugin(
   {
     theme: {
       colors: colorPalette,
-      borderRadius: {
-        none: '0px', // 0
-        sm: '0.25rem', // 4px
-        DEFAULT: '0.5rem', // 8px
-        md: '0.625rem', // 10px
-        lg: '0.75rem', // 12px
-        xl: '1rem', // 16px
-        '2xl': '1.25rem', // 20px
-        full: '9999px', // 9999px
-      },
-      boxShadow: {
-        sm: '0px 1px 2px rgba(0, 0, 0, 0.1)',
-        DEFAULT:
-          '0px 0px 1px rgba(0, 0, 0, 0.45), 0px 1px 2px rgba(0, 0, 0, 0.1)',
-        md: '0px 0px 1px rgba(0, 0, 0, 0.12), 0px 0.5px 2px rgba(0, 0, 0, 0.15), 0px 2px 3px rgba(0, 0, 0, 0.16)',
-        lg: '0px 0px 1px rgba(0, 0, 0, 0.35), 0px 6px 8px -4px rgba(0, 0, 0, 0.1)',
-        xl: '0px 0px 1px rgba(0, 0, 0, 0.19), 0px 1px 2px rgba(0, 0, 0, 0.07), 0px 6px 15px -5px rgba(0, 0, 0, 0.11)',
-        '2xl':
-          '0px 0px 1px rgba(0, 0, 0, 0.2), 0px 1px 3px rgba(0, 0, 0, 0.05), 0px 10px 24px -3px rgba(0, 0, 0, 0.1)',
-        none: 'none',
-      },
+      borderRadius: borderRadius,
+      boxShadow: boxShadow,
       container: {
         padding: {
           xl: '5rem',
         },
       },
-      fontSize: {
-        '2xs': [
-          '11px',
-          {
-            lineHeight: '1.15',
-            letterSpacing: '0.01em',
-            fontWeight: '420',
-          },
-        ],
-        xs: [
-          '12px',
-          {
-            lineHeight: '1.15',
-            letterSpacing: '0.02em',
-            fontWeight: '420',
-          },
-        ],
-        sm: [
-          '13px',
-          {
-            lineHeight: '1.15',
-            letterSpacing: '0.02em',
-            fontWeight: '420',
-          },
-        ],
-        base: [
-          '14px',
-          {
-            lineHeight: '1.15',
-            letterSpacing: '0.02em',
-            fontWeight: '420',
-          },
-        ],
-        lg: [
-          '16px',
-          {
-            lineHeight: '1.15',
-            letterSpacing: '0.02em',
-            fontWeight: '400',
-          },
-        ],
-        xl: [
-          '18px',
-          {
-            lineHeight: '1.15',
-            letterSpacing: '0.01em',
-            fontWeight: '400',
-          },
-        ],
-        '2xl': [
-          '20px',
-          {
-            lineHeight: '1.15',
-            letterSpacing: '0.01em',
-            fontWeight: '400',
-          },
-        ],
-        '3xl': [
-          '24px',
-          {
-            lineHeight: '1.15',
-            fontWeight: 400,
-            letterSpacing: '0.005em',
-          },
-        ],
-        // font size for paragraphs
-        'p-2xs': [
-          '11px',
-          {
-            lineHeight: '1.6',
-            letterSpacing: '0.01em',
-            fontWeight: '420',
-          },
-        ],
-        'p-xs': [
-          '12px',
-          {
-            lineHeight: '1.6',
-            letterSpacing: '0.02em',
-            fontWeight: '420',
-          },
-        ],
-        'p-sm': [
-          '13px',
-          {
-            lineHeight: '1.5',
-            letterSpacing: '0.02em',
-            fontWeight: '420',
-          },
-        ],
-        'p-base': [
-          '14px',
-          {
-            lineHeight: '1.5',
-            letterSpacing: '0.02em',
-            fontWeight: '420',
-          },
-        ],
-        'p-lg': [
-          '16px',
-          {
-            lineHeight: '1.5',
-            letterSpacing: '0.02em',
-            fontWeight: '400',
-          },
-        ],
-        'p-xl': [
-          '18px',
-          {
-            lineHeight: '1.42',
-            letterSpacing: '0.01em',
-            fontWeight: '400',
-          },
-        ],
-        'p-2xl': [
-          '20px',
-          {
-            lineHeight: '1.38',
-            letterSpacing: '0.01em',
-            fontWeight: '400',
-          },
-        ],
-        'p-3xl': [
-          '24px',
-          {
-            lineHeight: '1.2',
-            fontWeight: 400,
-            letterSpacing: '0.005em',
-          },
-        ],
-      },
+      fontSize: fontSize,
       screens: {
         sm: '640px',
         md: '768px',
@@ -221,6 +73,11 @@ export default plugin(
         },
         backgroundColor: {
           surface: semanticColors.surface,
+        },
+        gradientColorStops: {
+          surface: semanticColors.surface,
+          ink: semanticColors.ink,
+          outline: semanticColors.outline,
         },
         fill: {
           ink: semanticColors.ink,
@@ -390,10 +247,235 @@ export default plugin(
               },
             },
           },
+          // prose-v3: zero paragraph margins, user controls spacing with Enter
+          // all spacing on 8px grid: 4, 8, 16, 24, 32px
+          // empty <p> = 14px × 1.7 line-height ≈ 23.8px (the user's spacing unit)
+          v3: {
+            css: [
+              {
+                fontSize: '14px',
+                fontWeight: 420,
+                lineHeight: '1.7',
+                letterSpacing: '0.02em',
+
+                // prose-v3 color tokens — calmer, softer than defaults
+                '--tw-prose-body': 'var(--ink-gray-7)',
+                '--tw-prose-bold': 'var(--ink-gray-8)',
+                '--tw-prose-quotes': 'var(--ink-gray-7)',
+                '--tw-prose-quote-borders': 'var(--ink-gray-3)',
+                '--tw-prose-kbd': 'var(--ink-gray-8)',
+                '--tw-prose-code': 'var(--ink-gray-8)',
+
+                // links: subtle bottom border, darkens on hover
+                a: {
+                  textDecoration: 'none',
+                  borderBottom: '1px solid var(--ink-gray-3)',
+                  transition: 'border-color 0.08s ease',
+                },
+                'a:hover': {
+                  borderBottom: '1px solid var(--ink-gray-6)',
+                },
+
+                // inline code: subtle pill — strip Tailwind's added quotes
+                'code::before': { content: 'none' },
+                'code::after': { content: 'none' },
+                code: {
+                  backgroundColor: 'var(--surface-gray-2)',
+                  borderRadius: '4px',
+                  paddingTop: '1px',
+                  paddingBottom: '1px',
+                  paddingInlineStart: '5px',
+                  paddingInlineEnd: '5px',
+                  fontWeight: 420,
+                  fontSize: em(12, 14),
+                },
+                // code inside pre should not get the pill styles
+                'pre code': {
+                  backgroundColor: 'transparent',
+                  borderRadius: '0',
+                  padding: '0',
+                  fontWeight: 'inherit',
+                  fontSize: 'inherit',
+                },
+
+                // blockquote: left border, receded color, no italic, no quote marks
+                blockquote: {
+                  'border-inline-start-width': '2px',
+                  borderInlineStartColor: 'var(--ink-gray-3)',
+                  borderInlineStartStyle: 'solid',
+                  marginTop: '16px',
+                  marginBottom: '16px',
+                  paddingInlineStart: '1em',
+                  fontStyle: 'normal',
+                  color: 'var(--ink-gray-6)',
+                  quotes: 'none',
+                },
+                'blockquote p:first-of-type::before': { content: 'none' },
+                'blockquote p:last-of-type::after': { content: 'none' },
+                'blockquote p': {
+                  marginTop: '0',
+                  marginBottom: '0',
+                },
+
+                // paragraphs: zero margin — user controls spacing with empty paragraphs
+                p: {
+                  marginTop: '0',
+                  marginBottom: '0',
+                },
+
+                // headings: marginTop creates section break (32/24px),
+                // marginBottom keeps heading close to its content (8px, proximity)
+                // h1/h2: full weight + darkest; h3-h5: softer weight + stepped-back color
+                h1: {
+                  fontSize: em(20, 14),
+                  marginTop: '32px',
+                  marginBottom: '8px',
+                  lineHeight: '1.3',
+                },
+                h2: {
+                  fontSize: em(18, 14),
+                  marginTop: '32px',
+                  marginBottom: '8px',
+                  lineHeight: '1.35',
+                },
+                h3: {
+                  fontSize: em(16, 14),
+                  marginTop: '24px',
+                  marginBottom: '8px',
+                  lineHeight: '1.4',
+                },
+                h4: {
+                  fontSize: em(14, 14),
+                  marginTop: '24px',
+                  marginBottom: '8px',
+                  lineHeight: '1.45',
+                },
+                h5: {
+                  fontSize: em(13, 14),
+                  marginTop: '24px',
+                  marginBottom: '8px',
+                  lineHeight: '1.45',
+                },
+
+                // element after heading gets no extra top margin
+                'h1 + *': { marginTop: '0' },
+                'h2 + *': { marginTop: '0' },
+                'h3 + *': { marginTop: '0' },
+                'h4 + *': { marginTop: '0' },
+                'h5 + *': { marginTop: '0' },
+
+                // lists: small outer margin (4px), tight internal spacing
+                ul: {
+                  marginTop: '4px',
+                  marginBottom: '4px',
+                  paddingInlineStart: '1.5em',
+                },
+                ol: {
+                  marginTop: '4px',
+                  marginBottom: '4px',
+                  paddingInlineStart: '1.5em',
+                },
+                li: {
+                  marginTop: '4px',
+                  marginBottom: '4px',
+                },
+                'li p': {
+                  marginTop: '4px',
+                  marginBottom: '4px',
+                },
+                'ul ul, ul ol, ol ul, ol ol': {
+                  marginTop: '4px',
+                  marginBottom: '4px',
+                },
+
+                // code blocks: breathing room (16px)
+                pre: {
+                  fontSize: em(12, 14),
+                  lineHeight: '1.6',
+                  marginTop: '16px',
+                  marginBottom: '16px',
+                  borderRadius: '0.375rem',
+                  paddingTop: '0.75em',
+                  paddingInlineEnd: '1em',
+                  paddingBottom: '0.75em',
+                  paddingInlineStart: '1em',
+                },
+
+                // tables: breathing room (16px)
+                table: {
+                  fontSize: em(12, 14),
+                  lineHeight: '1.5',
+                  marginTop: '16px',
+                  marginBottom: '16px',
+                },
+
+                // images, video, figures: breathing room (16px)
+                img: {
+                  marginTop: '16px',
+                  marginBottom: '16px',
+                },
+                picture: {
+                  marginTop: '16px',
+                  marginBottom: '16px',
+                },
+                'picture > img': {
+                  marginTop: '0',
+                  marginBottom: '0',
+                },
+                video: {
+                  marginTop: '16px',
+                  marginBottom: '16px',
+                },
+                figure: {
+                  marginTop: '16px',
+                  marginBottom: '16px',
+                },
+                'figure > *': {
+                  marginTop: '0',
+                  marginBottom: '0',
+                },
+
+                // hr: short centered line, not edge-to-edge
+                hr: {
+                  marginTop: '24px',
+                  marginBottom: '24px',
+                  marginLeft: 'auto',
+                  marginRight: 'auto',
+                  width: '20%',
+                },
+                'hr + *': {
+                  marginTop: '0',
+                },
+              },
+              {
+                // first/last child: no extra margin
+                '> :first-child': {
+                  marginTop: '0',
+                },
+                '> :last-child': {
+                  marginBottom: '0',
+                },
+              },
+            ],
+          },
+          // prose-p-spacing: restores paragraph margins for content authored before prose-v3.
+          // Apply alongside prose-v3 for pre-migration content:
+          //   new content: "prose prose-v3"
+          //   old content: "prose prose-v3 prose-p-spacing"
+          // Must be defined after v3 in this config so its rules come later in
+          // the generated CSS and override v3's zero paragraph margins.
+          'p-spacing': {
+            css: {
+              p: {
+                marginTop: '0.5rem',
+                marginBottom: '0.5rem',
+              },
+            },
+          },
         }),
       },
     },
-  }
+  },
 )
 
 function em(pixels, base = 16) {

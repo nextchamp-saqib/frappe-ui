@@ -10,15 +10,14 @@
     "frappe/**/*.tsx",
     "frappe/**/*.vue",
     "frappe/index.js",
-    "frappe/index.d.ts",
-    "vitest.config.ts",
-    "vitest.setup.ts"
+    "frappe/index.d.ts"
   ],
-  "exclude": ["src/**/*.cy.ts"],
+  "exclude": ["src/**/*.cy.ts", "src/mocks/**/*"],
   "extends": "./tsconfig.base.json",
   "references": [{ "path": "./tsconfig.node.json" }],
   "compilerOptions": {
     "baseUrl": ".",
+    "ignoreDeprecations": "5.0",
     "paths": {
       "@/*": ["src/*"]
     }

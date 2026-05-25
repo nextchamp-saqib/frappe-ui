@@ -17,6 +17,7 @@
     </div>
   </div>
 </template>
+
 <script setup>
 import ListEmptyState from './ListEmptyState.vue'
 import ListHeader from './ListHeader.vue'
@@ -103,13 +104,14 @@ let _options = computed(() => {
 
 const allRowsSelected = computed(() => {
   if (!props.rows.length) return false
-  if (showGroupedRows.value) {
-    return (
-      selections.size ===
-      props.rows.reduce((acc, row) => acc + row.rows.length, 0)
-    )
-  }
-  return selections.size === props.rows.length
+
+  const rows = showGroupedRows.value
+    ? props.rows.flatMap((r) => r.rows)
+    : props.rows
+
+  const total = rows.filter((r) => !r.disabled).length
+
+  return total > 0 && selections.size === total
 })
 
 const selectable = computed(() => {
@@ -118,12 +120,12 @@ const selectable = computed(() => {
 
 let showGroupedRows = computed(() => {
   return props.rows.every(
-    (row) => row.group && row.rows && Array.isArray(row.rows)
+    (row) => row.group && row.rows && Array.isArray(row.rows),
   )
 })
 
 function toggleRow(row) {
-  if (!selections.delete(row)) {
+  if (!selections.delete(row) && !row.disabled) {
     selections.add(row)
   }
 }
@@ -135,11 +137,19 @@ function toggleAllRows(select) {
   }
   if (showGroupedRows.value) {
     props.rows.forEach((row) => {
-      row.rows.forEach((r) => selections.add(r[props.rowKey]))
+      row.rows.forEach((r) => {
+        if (!r.disabled) {
+          selections.add(r[props.rowKey])
+        }
+      })
     })
     return
   }
-  props.rows.forEach((row) => selections.add(row[props.rowKey]))
+  props.rows.forEach((row) => {
+    if (!row.disabled) {
+      selections.add(row[props.rowKey])
+    }
+  })
 }
 
 provide(
@@ -155,7 +165,7 @@ provide(
     slots: slots,
     toggleRow,
     toggleAllRows,
-  }))
+  })),
 )
 
 defineExpose({

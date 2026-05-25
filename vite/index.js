@@ -65,3 +65,4 @@ function frappeuiPlugin(options = {}) {
 }
 
 export default frappeuiPlugin
+export { lucideIcons } from './lucideIcons.js'

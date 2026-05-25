@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import Story from "@/components/Story.vue";
 import { reactive, ref } from "vue";
-// import FeatherIcon from "../FeatherIcon.vue";
-import LucideSearch from "~icons/lucide/search";
 import { Avatar, FormControl } from "frappe-ui";
 
 const state = reactive({
@@ -17,12 +15,15 @@ const inputValue = ref("");
 const selectValue = ref(null);
 const autocompleteValue = ref(null);
 const checkboxValue = ref(false);
+const dateValue = ref("");
+const dateRangeValue = ref("");
+const dateTimeValue = ref("");
+const timeValue = ref("");
 
 const inputTypes = [
   "text",
   "number",
   "email",
-  "date",
   "password",
   "search",
   "textarea",
@@ -69,10 +70,26 @@ const inputTypes = [
       <FormControl type="checkbox" v-bind="state" v-model="checkboxValue" />
     </Story>
 
+    <Story title="Date" :layout="{ width: 250 }">
+      <FormControl type="date" v-bind="state" v-model="dateValue" />
+    </Story>
+
+    <Story title="Date Range" :layout="{ width: 250 }">
+      <FormControl type="daterange" v-bind="state" v-model="dateRangeValue" />
+    </Story>
+
+    <Story title="Date & Time" :layout="{ width: 250 }">
+      <FormControl type="datetime" v-bind="state" v-model="dateTimeValue" />
+    </Story>
+
+    <Story title="Time" :layout="{ width: 250 }">
+      <FormControl type="time" v-bind="state" v-model="timeValue" />
+    </Story>
+
     <Story title="Prefix Icon" :layout="{ width: 250 }">
       <FormControl type="text" label="Label">
         <template #prefix>
-          <LucideSearch class="size-4" />
+          <span class="lucide-search size-4 text-ink-gray-6" />
         </template>
       </FormControl>
     </Story>
@@ -80,7 +97,7 @@ const inputTypes = [
     <Story title="Suffix Icon" :layout="{ width: 250 }">
       <FormControl type="text" label="Label">
         <template #suffix>
-          <LucideSearch class="size-4" />
+          <span class="lucide-search size-4 text-ink-gray-6" />
         </template>
       </FormControl>
     </Story>

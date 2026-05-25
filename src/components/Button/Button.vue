@@ -1,14 +1,14 @@
 <template>
-  <Tooltip :text="tooltip" :disabled="!tooltip?.length">
-    <button
-      v-bind="$attrs"
-      :class="buttonClasses"
-      @click="handleClick"
-      :disabled="isDisabled"
-      :ariaLabel="label"
-      :type = "props.type"
-      ref="rootRef"
-    >
+  <TooltipProvider>
+    <TooltipRoot>
+      <TooltipTrigger as-child>
+        <component
+          :is="Root"
+          v-bind="$attrs"
+          :class="buttonClasses"
+          :aria-label="label"
+          ref="rootRef"
+        >
       <LoadingIndicator
         v-if="loading"
         :class="{
@@ -19,8 +19,13 @@
         }"
       />
       <slot name="prefix" v-else-if="$slots['prefix'] || iconLeft">
+        <span
+          v-if="iconLeft && typeof iconLeft === 'string' && iconLeft.startsWith('lucide-')"
+          :class="[iconLeft, lucideSlotClasses]"
+          aria-hidden="true"
+        />
         <FeatherIcon
-          v-if="iconLeft && typeof iconLeft === 'string'"
+          v-else-if="iconLeft && typeof iconLeft === 'string'"
           :name="iconLeft"
           :class="slotClasses"
           aria-hidden="true"
@@ -30,8 +35,13 @@
 
       <template v-if="loading && loadingText">{{ loadingText }}</template>
       <template v-else-if="isIconButton && !loading">
+        <span
+          v-if="icon && typeof icon === 'string' && icon.startsWith('lucide-')"
+          :class="[icon, lucideSlotClasses]"
+          aria-hidden="true"
+        />
         <FeatherIcon
-          v-if="icon && typeof icon === 'string'"
+          v-else-if="icon && typeof icon === 'string'"
           :name="icon"
           :class="slotClasses"
         />
@@ -46,28 +56,38 @@
       </span>
 
       <slot name="suffix">
+        <span
+          v-if="iconRight && typeof iconRight === 'string' && iconRight.startsWith('lucide-')"
+          :class="[iconRight, lucideSlotClasses]"
+          aria-hidden="true"
+        />
         <FeatherIcon
-          v-if="iconRight && typeof iconRight === 'string'"
+          v-else-if="iconRight && typeof iconRight === 'string'"
           :name="iconRight"
           :class="slotClasses"
           aria-hidden="true"
         />
-          <component
-            v-else-if="iconRight"
-            :is="iconRight"
-            :class="slotClasses"
-          />
+        <component
+          v-else-if="iconRight"
+          :is="iconRight"
+          :class="slotClasses"
+        />
       </slot>
-    </button>
-  </Tooltip>
+        </component>
+      </TooltipTrigger>
+      <TooltipBubble v-if="tooltip?.length" :text="tooltip" />
+    </TooltipRoot>
+  </TooltipProvider>
 </template>
 <script lang="ts" setup>
-import { computed, useSlots, ref } from 'vue'
+import { computed, h, ref, useSlots, watchEffect } from 'vue'
+import { TooltipProvider, TooltipRoot, TooltipTrigger } from 'reka-ui'
 import FeatherIcon from '../FeatherIcon.vue'
 import LoadingIndicator from '../LoadingIndicator.vue'
-import { useRouter } from 'vue-router'
+import TooltipBubble from '../Tooltip/TooltipBubble.vue'
+import { RouterLink } from 'vue-router'
+import { warnFeatherIconUsage } from '../../utils/iconString'
 import type { ButtonProps, ThemeVariant } from './types'
-import Tooltip from '../Tooltip/Tooltip.vue'
 
 defineOptions({ inheritAttrs: false })
 
@@ -77,11 +97,16 @@ const props = withDefaults(defineProps<ButtonProps>(), {
   variant: 'subtle',
   loading: false,
   disabled: false,
-  type: "button"
+  type: 'button',
+})
+
+watchEffect(() => {
+  warnFeatherIconUsage('Button', 'icon', props.icon)
+  warnFeatherIconUsage('Button', 'iconLeft', props.iconLeft)
+  warnFeatherIconUsage('Button', 'iconRight', props.iconRight)
 })
 
 const slots = useSlots()
-const router = useRouter()
 
 const buttonClasses = computed(() => {
   let solidClasses = {
@@ -197,8 +222,38 @@ const slotClasses = computed(() => {
   return classes
 })
 
+const lucideSlotClasses = computed(() => {
+  return {
+    sm: 'size-4',
+    md: 'size-4.5',
+    lg: 'size-5',
+    xl: 'size-6',
+    '2xl': 'size-6',
+  }[props.size]
+})
+
 const isDisabled = computed(() => {
   return props.disabled || props.loading
+})
+
+// Avoid "Maximum call stack size exceeded" error
+// when using <component is='button' /> inside <Button /> component
+// by using "render" function here to avoid conflicting html "button" component with
+// globally registered "Button" component in consumer apps
+const Root = computed(() => {
+  if (!isDisabled.value && props.route) {
+    return h(RouterLink, { to: props.route })
+  }
+
+  if (!isDisabled.value && props.link) {
+    return h('a', {
+      href: props.link,
+      target: '_blank',
+      rel: 'noreferrer noopener',
+    })
+  }
+
+  return h('button', { type: props.type, disabled: isDisabled.value })
 })
 
 const isIconButton = computed(() => {
@@ -221,14 +276,6 @@ const hasLucideIconInDefaultSlot = computed(() => {
   }
   return false
 })
-
-const handleClick = () => {
-  if (props.route) {
-    return router.push(props.route)
-  } else if (props.link) {
-    return window.open(props.link, '_blank')
-  }
-}
 
 const rootRef = ref()
 defineExpose({ rootRef })

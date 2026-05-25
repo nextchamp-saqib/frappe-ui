@@ -5,19 +5,56 @@ import { meta } from './meta'
 import { getComponentItems } from './utils'
 import { transformerStyleToClass } from '@shikijs/transformers'
 import componentTransformer from './plugins/componentTransformer'
+import colocatedComponentDocs, {
+  syncColocatedComponentDocs,
+} from './plugins/colocatedComponentDocs'
 import fs from 'fs'
+import { execSync } from 'child_process'
 
 // needed for transforming shiki inline styles to classes
 const toClass = transformerStyleToClass({
   classPrefix: 's_',
 })
 
+const base = process.env.VITEPRESS_BASE || '/'
+
+const isDev = process.env.NODE_ENV !== 'production'
+let devBranch = ''
+if (isDev) {
+  try {
+    devBranch = execSync('git rev-parse --abbrev-ref HEAD', {
+      cwd: path.resolve(__dirname, '../..'),
+    })
+      .toString()
+      .trim()
+  } catch {}
+}
+const devTitle = devBranch ? `[${devBranch}] ${meta.name}` : meta.name
+
+// Generate proxy files for colocated component docs before VitePress
+// scans srcDir. The Vite plugin below keeps them in sync during dev.
+syncColocatedComponentDocs()
+
+// shiki.css is written at buildEnd for dev-mode imports, but the
+// production CSS bundle is finalized by Vite *before* markdown
+// processing runs — so the bundle never picks up the generated
+// classes. We inject the collected styles into each page's <head>
+// via transformHead below to side-step that timing. Still write the
+// stub here so theme/index.ts's eager import resolves on fresh
+// checkouts.
+const shikiCssPath = path.resolve(__dirname, '../css/shiki.css')
+if (!fs.existsSync(shikiCssPath)) {
+  fs.mkdirSync(path.dirname(shikiCssPath), { recursive: true })
+  fs.writeFileSync(shikiCssPath, '/* Auto-generated on build-time */\n', 'utf-8')
+}
+
 export default defineConfig({
+  base,
   srcDir: 'content',
   lastUpdated: true,
-  title: meta.name,
+  title: devTitle,
   description: meta.description,
-  titleTemplate: meta.name,
+  titleTemplate: devTitle,
   markdown: {
     theme: {
       dark: 'tokyo-night',
@@ -30,6 +67,8 @@ export default defineConfig({
   },
   cleanUrls: true,
   head: [
+    // LLM-friendly docs index — https://llmstxt.org
+    ['link', { rel: 'alternate', type: 'text/markdown', href: '/llms.txt' }],
     // newsreader font
     ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
     [
@@ -97,7 +136,10 @@ export default defineConfig({
     ],
   },
   vite: {
-    plugins: [lucideIcons()],
+    plugins: [lucideIcons(), colocatedComponentDocs()],
+    define: {
+      __DEV_BRANCH__: JSON.stringify(devBranch),
+    },
     resolve: {
       alias: {
         '@/components': path.resolve(__dirname, '../components/'),
@@ -105,6 +147,11 @@ export default defineConfig({
         'dayjs/esm': 'dayjs',
       },
     },
+  },
+  transformHead: () => {
+    const css = toClass.getCSS()
+    if (!css) return []
+    return [['style', { 'data-shiki': '' }, css]]
   },
   buildEnd: async () => {
     const str = '/* Auto-generated on build-time */ \n\n ' + toClass.getCSS()

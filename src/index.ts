@@ -16,6 +16,15 @@ export * from './components/DatePicker'
 export * from './components/MonthPicker'
 export * from './components/Dialog'
 export { default as Dialogs } from './components/Dialogs.vue'
+export {
+  dialog,
+  type ConfirmArgs,
+  type PromptArgs,
+  type PromptField,
+  type ConfirmResult,
+  type PromptResult,
+  type DialogNamespace,
+} from './utils/dialog'
 export * from './components/Divider'
 export * from './components/Dropdown'
 export * from './components/ErrorMessage'
@@ -23,11 +32,13 @@ export { default as FeatherIcon } from './components/FeatherIcon.vue'
 export * from './components/FileUploader'
 export * from './components/FormControl'
 export { default as FormLabel } from './components/FormLabel.vue'
+export * from './components/ItemListRow'
 export { default as Input } from './components/Input.vue'
 export { default as ListItem } from './components/ListItem.vue'
 export { default as LoadingIndicator } from './components/LoadingIndicator.vue'
 export { default as LoadingText } from './components/LoadingText.vue'
 export * from './components/Progress'
+export { default as Spinner } from './components/Spinner.vue'
 export * from './components/Popover'
 export * from './components/Rating'
 export { default as Resource } from './components/Resource.vue'
@@ -54,8 +65,10 @@ export { default as ListGroupHeader } from './components/ListView/ListGroupHeade
 export { default as ListGroupRows } from './components/ListView/ListGroupRows.vue'
 export { default as ListSelectBanner } from './components/ListView/ListSelectBanner.vue'
 export { default as ListFooter } from './components/ListView/ListFooter.vue'
+/** @deprecated Use the imperative `toast(...)` API instead. The `<Toast />` SFC will be removed in a future major. */
 export { default as Toast } from './components/Toast/Toast.vue'
-export { toast } from './components/Toast/index'
+export { toast } from './components/Toast/toast'
+export { default as ToastProvider } from './components/Toast/ToastProvider.vue'
 export * from './components/Tooltip'
 export { default as CommandPalette } from './components/CommandPalette/CommandPalette.vue'
 export { default as CommandPaletteItem } from './components/CommandPalette/CommandPaletteItem.vue'
@@ -78,6 +91,7 @@ export { default as NumberChart } from './components/Charts/NumberChart.vue'
 export { default as DonutChart } from './components/Charts/DonutChart.vue'
 export { default as FunnelChart } from './components/Charts/FunnelChart.vue'
 export { default as ECharts } from './components/Charts/ECharts.vue'
+export { default as useAxisChartOptions } from './components/Charts/axisChartOptions'
 
 // directives
 export { default as onOutsideClickDirective } from './directives/onOutsideClick'

@@ -1,51 +1,99 @@
 <script setup lang="ts">
-import { Badge } from 'frappe-ui'
-
-interface itemProp {
+interface ItemProp {
   name: string
   description: string
   type: string
+  deprecated?: string | boolean
 }
 
 interface Props {
-  data: itemProp[]
+  data: ItemProp[]
 }
 
 defineProps<Props>()
 </script>
 
 <template>
-  <table class="overflow-auto scrollbar not-prose w-full">
-    <colgroup>
-      <col class="w-[20%]" />
-      <col class="w-[80%]" />
-    </colgroup>
+  <div class="not-prose mt-8">
+    <table class="hidden sm:table w-full border-collapse border-b text-left">
+      <thead>
+        <tr class="border-b">
+          <th class="w-[24%] py-2.5 pr-2 text-sm font-semibold text-ink-gray-9">
+            Slot
+          </th>
+          <th class="w-[76%] px-2 py-2.5 text-sm font-semibold text-ink-gray-9">
+            Payload
+          </th>
+        </tr>
+      </thead>
 
-    <tbody
-      class="[&_td]:px-3 [&_th]:px-3 [&_td]:p-2 [&_th]:p-2 [&_td]:align-top"
-    >
-      <tr class="text-left *:bg-surface-gray-2 text-ink-gray-6 *:font-semibold">
-        <th class="rounded-l">Slot</th>
-        <th class="rounded-r">Payload</th>
-      </tr>
+      <tbody>
+        <tr v-for="x in data" :key="x.name" class="border-b last:border-b-0">
+          <td class="py-2 pr-2 align-top">
+            <div
+              class="font-mono text-xs font-medium leading-6 text-ink-gray-9 break-words"
+            >
+              <span :class="{ 'line-through': x.deprecated }">{{
+                x.name
+              }}</span>
+            </div>
+          </td>
 
-      <tr v-for="x in data" :key="x.name" class="border-b last:border-0">
-        <td>
-          <Badge class="w-fit !rounded-sm font-mono">
-            {{ x.name }}
-          </Badge>
-        </td>
+          <td class="px-2 py-2 align-top">
+            <div
+              v-if="!x.deprecated"
+              class="whitespace-normal break-words font-mono text-xs leading-6 text-ink-gray-8"
+            >
+              {{ x.type === 'any' ? '—' : x.type || '—' }}
+            </div>
+            <p
+              v-if="typeof x.deprecated === 'string'"
+              class="whitespace-pre-wrap font-mono text-xs text-ink-gray-6"
+            >
+              Deprecated — {{ x.deprecated }}
+            </p>
+            <p
+              v-else-if="x.description"
+              class="mt-1 whitespace-pre-wrap font-mono text-xs leading-6 text-ink-gray-6"
+            >
+              {{ x.description }}
+            </p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
-        <td class="flex flex-wrap h-fit gap-2">
-          <span class="text-sm font-semibold">
-            {{ x.type == 'any'? '-' : x.type }}
-          </span>
+    <div class="sm:hidden">
+      <div
+        v-for="x in data"
+        :key="x.name"
+        class="border-b last:border-b-0 py-3 grid gap-1.5"
+      >
+        <div
+          class="font-mono text-xs font-medium leading-6 text-ink-gray-9 break-all"
+        >
+          <span :class="{ 'line-through': x.deprecated }">{{ x.name }}</span>
+        </div>
 
-          <p class="text-sm text-ink-gray-5 leading-relaxed w-full">
-            {{ x.description }}
-          </p>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+        <div
+          v-if="!x.deprecated"
+          class="whitespace-normal break-words font-mono text-xs leading-6 text-ink-gray-8"
+        >
+          {{ x.type === 'any' ? '—' : x.type || '—' }}
+        </div>
+        <p
+          v-if="typeof x.deprecated === 'string'"
+          class="whitespace-pre-wrap font-mono text-xs text-ink-gray-6"
+        >
+          Deprecated — {{ x.deprecated }}
+        </p>
+        <p
+          v-else-if="x.description"
+          class="whitespace-pre-wrap font-mono text-xs leading-6 text-ink-gray-6"
+        >
+          {{ x.description }}
+        </p>
+      </div>
+    </div>
+  </div>
 </template>

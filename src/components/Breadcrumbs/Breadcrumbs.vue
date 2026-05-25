@@ -4,7 +4,7 @@
       <Dropdown class="h-7" :options="dropdownItems">
         <Button variant="ghost">
           <template #icon>
-            <LucideEllipsis class="w-4 text-ink-gray-5" />
+            <span class="lucide-ellipsis size-4 text-ink-gray-5" />
           </template>
         </Button>
       </Dropdown>
@@ -22,12 +22,15 @@
           class="flex items-center rounded px-0.5 py-1 text-lg font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
           :class="[
             i == crumbs.length - 1
-              ? 'text-ink-gray-9'
+              ? 'min-w-0 text-ink-gray-9'
               : 'text-ink-gray-5 hover:text-ink-gray-7',
           ]"
         >
           <slot name="prefix" :item="item" />
-          <span>
+          <span
+            :class="i == crumbs.length - 1 && 'min-w-0 truncate'"
+            :title="i == crumbs.length - 1 ? item.label : undefined"
+          >
             {{ item.label }}
           </span>
           <slot name="suffix" :item="item" />
@@ -39,12 +42,15 @@
           class="flex items-center rounded px-0.5 py-1 text-lg font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
           :class="[
             i == crumbs.length - 1
-              ? 'text-ink-gray-9'
+              ? 'min-w-0 text-ink-gray-9'
               : 'text-ink-gray-5 hover:text-ink-gray-7',
           ]"
         >
           <slot name="prefix" :item="item" />
-          <span>
+          <span
+            :class="i == crumbs.length - 1 && 'min-w-0 truncate'"
+            :title="i == crumbs.length - 1 ? item.label : undefined"
+          >
             {{ item.label }}
           </span>
           <slot name="suffix" :item="item" />
@@ -55,12 +61,15 @@
           class="flex items-center rounded px-0.5 py-1 text-lg font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-outline-gray-3"
           :class="[
             i == crumbs.length - 1
-              ? 'text-ink-gray-9'
+              ? 'min-w-0 text-ink-gray-9'
               : 'text-ink-gray-5 hover:text-ink-gray-7',
           ]"
         >
           <slot name="prefix" :item="item" />
-          <span>
+          <span
+            :class="i == crumbs.length - 1 && 'min-w-0 truncate'"
+            :title="i == crumbs.length - 1 ? item.label : undefined"
+          >
             {{ item.label }}
           </span>
           <slot name="suffix" :item="item" />
@@ -84,7 +93,6 @@ import { Button } from '../Button'
 import type { BreadcrumbsProps } from './types'
 import { ref, computed, nextTick, useTemplateRef } from 'vue'
 import { useResizeObserver } from '@vueuse/core'
-import LucideEllipsis from '~icons/lucide/ellipsis'
 import type { BreadcrumbItem } from './types'
 
 const crumbsEl = useTemplateRef<HTMLDivElement>('crumbsRef')

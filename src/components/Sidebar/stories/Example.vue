@@ -2,20 +2,6 @@
 import { reactive } from 'vue'
 import { Sidebar } from 'frappe-ui'
 
-import Notifications from '~icons/lucide/bell'
-import Deals from '~icons/lucide/briefcase'
-import Organizations from '~icons/lucide/building'
-import Tasks from '~icons/lucide/check-square'
-import Notes from '~icons/lucide/clipboard'
-import Link from '~icons/lucide/link'
-import EmailTemplates from '~icons/lucide/mail'
-import Moon from '~icons/lucide/moon'
-import CallLogs from '~icons/lucide/phone'
-import Settings from '~icons/lucide/settings'
-import User from '~icons/lucide/user'
-import Contacts from '~icons/lucide/user-check'
-import Leads from '~icons/lucide/users'
-
 function toggleTheme() {
   const currentTheme = document.documentElement.getAttribute('data-theme')
   const newTheme = currentTheme === 'dark' ? 'light' : 'dark'
@@ -28,17 +14,17 @@ const crmSidebar = reactive({
     subtitle: 'Jane Doe',
     logo: 'https://raw.githubusercontent.com/frappe/crm/develop/.github/logo.svg',
     menuItems: [
-      { label: 'Toggle Theme', icon: Moon, onClick: toggleTheme },
+      { label: 'Toggle Theme', icon: 'lucide-moon', onClick: toggleTheme },
       {
         label: 'Help',
         to: '/help',
-        icon: Settings,
+        icon: 'lucide-settings',
         onClick: () => alert('Help clicked!'),
       },
       {
         label: 'Logout',
         to: '/logout',
-        icon: User,
+        icon: 'lucide-user',
         onClick: () => alert('Logging out...'),
       },
     ],
@@ -46,22 +32,22 @@ const crmSidebar = reactive({
   sections: [
     {
       label: '',
-      items: [{ label: 'Notifications', icon: Notifications, to: '' }],
+      items: [{ label: 'Notifications', icon: 'lucide-bell', to: '' }],
     },
     {
       label: '',
       items: [
-        { label: 'Leads', icon: Leads, to: '/leads' },
-        { label: 'Deals', icon: Deals, to: '/deals' },
-        { label: 'Contacts', icon: Contacts, to: '/contacts' },
-        { label: 'Organizations', icon: Organizations, to: '/organizations' },
-        { label: 'Notes', icon: Notes, to: '/notes' },
-        { label: 'Tasks', icon: Tasks, to: '/tasks' },
-        { label: 'Call Logs', icon: CallLogs, to: '/call-logs' },
+        { label: 'Leads', icon: 'lucide-users', to: '' },
+        { label: 'Deals', icon: 'lucide-briefcase', to: '' },
+        { label: 'Contacts', icon: 'lucide-user-check', to: '' },
+        { label: 'Organizations', icon: 'lucide-building', to: '' },
+        { label: 'Notes', icon: 'lucide-clipboard', to: '' },
+        { label: 'Tasks', icon: 'lucide-check-square', to: '' },
+        { label: 'Call Logs', icon: 'lucide-phone', to: '' },
         {
           label: 'Email Templates',
-          icon: EmailTemplates,
-          to: '/email-templates',
+          icon: 'lucide-mail',
+          to: '',
         },
       ],
     },
@@ -69,13 +55,13 @@ const crmSidebar = reactive({
       label: 'Views',
       collapsible: true,
       items: [
-        { label: 'My Open Deals', icon: Link, to: '/my-open-deals' },
-        { label: 'Partnership Deals', icon: Link, to: '/partnership-deals' },
-        { label: 'Unassigned Deals', icon: Link, to: '/unassigned-deals' },
+        { label: 'My Open Deals', icon: 'lucide-link', to: '' },
+        { label: 'Partnership Deals', icon: 'lucide-link', to: '' },
+        { label: 'Unassigned Deals', icon: 'lucide-link', to: '' },
         {
           label: 'Enterprise Pipeline',
-          icon: Link,
-          to: '/enterprise-pipeline',
+          icon: 'lucide-link',
+          to: '',
         },
       ],
     },
@@ -84,5 +70,7 @@ const crmSidebar = reactive({
 </script>
 
 <template>
-  <Sidebar :header="crmSidebar.header" :sections="crmSidebar.sections" />
+  <div class="w-full !-m-8">
+    <Sidebar :header="crmSidebar.header" :sections="crmSidebar.sections" />
+  </div>
 </template>

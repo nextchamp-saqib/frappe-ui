@@ -51,7 +51,7 @@
               : 'ml-2 w-auto opacity-100'
           "
         >
-          <LucideChevronDown class="h-4 w-4 text-ink-gray-7" />
+          <span class="lucide-chevron-down size-4 text-ink-gray-7" />
         </div>
       </button>
     </template>
@@ -59,11 +59,13 @@
 </template>
 
 <script setup lang="ts">
-import { inject } from 'vue'
-import LucideChevronDown from '~icons/lucide/chevron-down'
+import { computed, inject } from 'vue'
 import Dropdown from '../Dropdown/Dropdown.vue'
-import { SidebarHeaderProps } from './types'
+import { SidebarHeaderProps, sidebarCollapsedKey } from './types'
 
 const props = defineProps<SidebarHeaderProps>()
-const isCollapsed = inject('isSidebarCollapsed', false)
+const isCollapsed = inject(
+  sidebarCollapsedKey,
+  computed(() => false),
+)
 </script>

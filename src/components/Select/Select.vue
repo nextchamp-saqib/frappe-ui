@@ -1,9 +1,22 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { SelectProps, SelectOption } from './types'
-import LucideChevronDown from '~icons/lucide/chevron-down'
-import LucideCheck from '~icons/lucide/check'
-
+import { computed, useAttrs, useSlots } from 'vue'
+import { usePopoverMotion } from '../../composables/usePopoverMotion'
+import { useInputLabeling } from '../../composables/useInputLabeling'
+import { useEmptyValueMapping } from '../shared/selection/useEmptyValueMapping'
+import type {
+  SelectNormalizedOption,
+  SelectOption,
+  SelectOptionValue,
+  SelectProps,
+  SelectSlots,
+} from './types'
+import ItemListRow from '../ItemListRow/ItemListRow.vue'
+import {
+  InputDescription,
+  InputError,
+  InputLabel,
+  LabelingWrapper,
+} from '../InputLabeling'
 import {
   SelectContent,
   SelectItem,
@@ -15,127 +28,451 @@ import {
   SelectValue,
   SelectViewport,
 } from 'reka-ui'
+import OptionIcon from '../shared/selection/OptionIcon.vue'
+import '../shared/selection/popoverMotion.css'
+import {
+  EMPTY_VALUE_PREFIX,
+  inputFontSizeClasses,
+  itemRootSizeClasses,
+  toItemListSize,
+  triggerBaseClasses,
+  triggerContentPaddingClasses,
+  triggerSizeClasses,
+  triggerVariantClasses,
+} from './utils'
 
-const model = defineModel<String>()
+defineOptions({
+  inheritAttrs: false,
+})
+
+const model = defineModel<SelectOptionValue | undefined>()
+const open = defineModel<boolean>('open', { default: false })
 
 const props = withDefaults(defineProps<SelectProps>(), {
   size: 'sm',
   variant: 'subtle',
   placeholder: 'Select option',
+  options: () => [],
+  emptyText: 'No options',
 })
 
-const fontSizeClasses = computed(() => {
-  return {
-    sm: 'text-base',
-    md: 'text-base',
-    lg: 'text-lg',
-    xl: 'text-xl',
-  }[props.size]
+const attrs = useAttrs()
+const slots = useSlots()
+
+const {
+  inputId,
+  labelId,
+  descriptionId,
+  errorMessageId,
+  describedBy,
+  hasError,
+  errorLines,
+  showDescription,
+} = useInputLabeling(props, {
+  size: () => props.size,
+  variant: () => props.variant,
+  disabled: () => props.disabled,
 })
 
-const paddingClasses = computed(() => {
-  return {
-    sm: 'px-2',
-    md: 'px-2.5 ',
-    lg: 'px-3',
-    xl: 'px-3',
-  }[props.size]
+const hasLabeling = computed(() => {
+  return Boolean(
+    props.label ||
+      props.description ||
+      hasError.value ||
+      slots.label ||
+      slots.description,
+  )
 })
 
-let sizeClasses = {
-  sm: 'rounded min-h-7',
-  md: 'rounded min-h-8',
-  lg: 'rounded-md min-h-10',
-  xl: 'rounded-md min-h-10',
-}[props.size]
+const formAttrKeys = ['name', 'autocomplete'] as const
 
-const selectClasses = computed(() => {
-  let variant = props.disabled ? 'disabled' : props.variant
-  let variantClasses = {
-    subtle:
-      'border border-[--surface-gray-2] bg-surface-gray-2 hover:border-outline-gray-modals hover:bg-surface-gray-3',
-    outline:
-      'border border-outline-gray-2 bg-surface-white hover:border-outline-gray-3',
-    ghost:
-      'bg-transparent border-transparent hover:bg-surface-gray-3 focus:bg-surface-gray-3',
-    disabled: [
-      'border cursor-not-allowed',
-      props.variant !== 'ghost' ? 'bg-surface-gray-1' : '',
-      props.variant === 'outline'
-        ? 'border-outline-gray-2'
-        : 'border-transparent',
-    ],
-  }[variant]
+const { motion: contentMotion, onPointerDown: markPointerDown } =
+  usePopoverMotion(open)
 
-  return [
-    sizeClasses,
-    fontSizeClasses.value,
-    paddingClasses.value,
-    variantClasses,
-    'transition-colors w-full focus:ring-2 data-[state=open]:ring-2 ring-outline-gray-3 ',
-  ]
+const rootAttrs = computed(() => {
+  const out: Record<string, unknown> = Object.fromEntries(
+    formAttrKeys.filter((key) => key in attrs).map((key) => [key, attrs[key]]),
+  )
+  if (props.required) out.required = true
+  return out
 })
+
+const triggerAttrs = computed(() => {
+  const {
+    class: _class,
+    style: _style,
+    name: _name,
+    autocomplete: _autocomplete,
+    ...rest
+  } = attrs
+
+  return rest
+})
+
+const itemSize = computed(() => toItemListSize(props.size))
+
+const itemRootClasses = computed(() => itemRootSizeClasses(props.size))
+
+const triggerContentPadding = computed(() =>
+  triggerContentPaddingClasses(props.size),
+)
+
+const triggerClasses = computed(() => [
+  triggerBaseClasses,
+  triggerSizeClasses(props.size),
+  inputFontSizeClasses(props.size),
+  triggerVariantClasses(props.variant, Boolean(props.disabled)),
+])
+
+function normalizeOption(option: SelectOption): SelectNormalizedOption | null {
+  if (!option) return null
+
+  const normalized =
+    typeof option === 'string' ? { label: option, value: option } : option
+
+  if (normalized.value === undefined || normalized.value === null) {
+    return null
+  }
+
+  return normalized
+}
 
 const selectOptions = computed(() => {
-  const str = typeof props.options?.[0] == 'string'
-  const tmp = props.options?.map((x) => ({ label: x, value: x }))
-  return (str ? tmp : props.options)?.filter((x) => x && String(x.value)) || []
+  return (props.options || [])
+    .map(normalizeOption)
+    .filter((option): option is SelectNormalizedOption => Boolean(option))
 })
 
-defineSlots<{
-  /** Content rendered before the selected value (e.g., left icon or custom content) */
-  prefix?: () => any
+const { toInternal, toExternal } = useEmptyValueMapping(
+  selectOptions,
+  EMPTY_VALUE_PREFIX,
+)
 
-  /** Content rendered after the selected value (e.g., right icon or custom content) */
-  suffix?: () => any
+const internalOptions = computed(() =>
+  selectOptions.value.map((option) => ({
+    option,
+    internalValue: toInternal(option),
+  })),
+)
 
-  /** Custom rendering for each dropdown option */
-  option?: (props: { option: SelectOption }) => any
+function toInternalValue(value: SelectOptionValue | undefined) {
+  if (value !== '') return value
+  const empty = selectOptions.value.find((option) => option.value === '')
+  return empty ? toInternal(empty) : value
+}
 
-  /** Custom content at the bottom of the dropdown */
-  footer?: () => any
-}>()
+function toExternalValue(value: SelectOptionValue | undefined) {
+  return toExternal(value)
+}
 
+const internalModel = computed<SelectOptionValue | undefined>({
+  get: () => toInternalValue(model.value),
+  set: (value) => {
+    model.value = toExternalValue(value)
+  },
+})
+
+const selectedOption = computed(() => {
+  return (
+    selectOptions.value.find((option) => option.value === model.value) ?? null
+  )
+})
+
+function isBlank(value: unknown) {
+  return value === '' || value === null || value === undefined
+}
+
+const showPlaceholderForSelected = computed(() => {
+  if (!selectedOption.value) return false
+  return (
+    isBlank(selectedOption.value.value) && isBlank(selectedOption.value.label)
+  )
+})
+
+const displayValue = computed(() => {
+  if (showPlaceholderForSelected.value) return props.placeholder
+  return selectedOption.value?.label || ''
+})
+
+const selectSizingText = computed(() => {
+  return [
+    props.placeholder,
+    ...selectOptions.value.map((option) => option.label),
+  ].join('\n')
+})
+
+function getOptionSlotName(option: SelectNormalizedOption) {
+  return option.slot ? `item-${option.slot}` : undefined
+}
+
+function getOptionKey(option: SelectNormalizedOption, index: number) {
+  return `${index}:${typeof option.value}:${String(option.value)}`
+}
+
+defineSlots<SelectSlots>()
 </script>
 
 <template>
-  <SelectRoot v-model="model">
-    <SelectTrigger
-      class="inline-flex items-center gap-2 outline-none text-base text-ink-gray-7 data-[placeholder]:text-ink-gray-4 data-[disabled]:text-ink-gray-4"
-      aria-label="Customise options"
-      :class="[selectClasses, $attrs.class]"
-      :disabled="disabled"
+  <LabelingWrapper
+    :enabled="hasLabeling"
+    :wrapper-class="['space-y-1.5', attrs.class as any]"
+    :wrapper-style="attrs.style as any"
+  >
+    <InputLabel
+      v-if="label || $slots.label"
+      :id="labelId"
+      :for-id="inputId"
+      :label="label"
+      :required="required"
+      class="text-p-sm font-medium text-ink-gray-7"
     >
-      <slot name="prefix" />
-      <SelectValue :placeholder="placeholder" class="truncate" />
-      <slot name="suffix">
-        <LucideChevronDown class="size-4 text-ink-gray-4 ml-auto shrink-0" />
-      </slot>
+      <template v-if="$slots.label" #default="slotProps">
+        <slot name="label" v-bind="slotProps" />
+      </template>
+    </InputLabel>
+    <SelectRoot v-model="internalModel" v-model:open="open" v-bind="rootAttrs">
+    <SelectTrigger
+      :id="inputId"
+      data-slot="trigger"
+      v-bind="triggerAttrs"
+      :class="[
+        triggerClasses,
+        hasLabeling ? 'w-full' : null,
+        hasLabeling ? null : (attrs.class as any),
+      ]"
+      :style="hasLabeling ? null : (attrs.style as any)"
+      :disabled="disabled"
+      :aria-invalid="hasError || undefined"
+      :aria-errormessage="hasError ? errorMessageId : undefined"
+      :aria-describedby="describedBy"
+      :aria-required="required || undefined"
+      :data-invalid="hasError ? 'true' : undefined"
+      :data-required="required ? 'true' : undefined"
+      @pointerdown="markPointerDown"
+    >
+      <template v-if="$slots.trigger">
+        <slot
+          name="trigger"
+          v-bind="{ open, disabled: !!disabled, selectedOption, displayValue }"
+        />
+        <div
+          data-slot="trigger-value"
+          :class="[
+            'pointer-events-none absolute inset-0 flex items-center overflow-hidden',
+            triggerContentPadding,
+          ]"
+          aria-hidden="true"
+        >
+          <SelectValue
+            :placeholder="placeholder"
+            class="max-w-full truncate opacity-0"
+            :class="{ 'text-ink-gray-4': showPlaceholderForSelected }"
+          >
+            <template v-if="selectedOption">
+              {{
+                showPlaceholderForSelected ? placeholder : selectedOption.label
+              }}
+            </template>
+          </SelectValue>
+        </div>
+      </template>
+      <template v-else>
+        <!--
+          Prefix precedence on the trigger:
+            1. selected + `#item-prefix` slot → reuse the list's per-item
+               prefix renderer so the trigger matches the dropdown row
+               without a second slot definition.
+            2. selected + `option.icon` → auto-render the icon (lucide
+               string / emoji / component).
+            3. not selected + `#prefix` slot → user's placeholder affordance.
+        -->
+        <template v-if="selectedOption && slots['item-prefix']">
+          <slot
+            name="item-prefix"
+            v-bind="{ item: selectedOption, option: selectedOption }"
+          />
+        </template>
+        <OptionIcon
+          v-else-if="selectedOption?.icon"
+          :icon="selectedOption.icon"
+        />
+        <slot
+          v-else
+          name="prefix"
+          v-bind="{
+            open,
+            disabled: !!disabled,
+            selectedOption,
+            displayValue,
+          }"
+        />
+
+        <div class="grid min-w-0 text-left truncate">
+          <SelectValue
+            :placeholder="placeholder"
+            class="col-start-1 row-start-1 max-w-full truncate"
+            :class="{ 'text-ink-gray-4': showPlaceholderForSelected }"
+          >
+            <template v-if="selectedOption">
+              {{
+                showPlaceholderForSelected ? placeholder : selectedOption.label
+              }}
+            </template>
+          </SelectValue>
+          <span
+            aria-hidden="true"
+            class="select-trigger-sizer col-start-1 row-start-1"
+            :data-width-text="selectSizingText"
+          />
+        </div>
+
+        <slot
+          name="suffix"
+          v-bind="{
+            open,
+            disabled: !!disabled,
+            selectedOption,
+            displayValue,
+          }"
+        >
+          <span class="lucide-chevron-down ml-auto size-4 shrink-0 text-ink-gray-4" />
+        </slot>
+      </template>
     </SelectTrigger>
 
     <SelectPortal>
       <SelectContent
-        class="bg-surface-modal ring-1 ring-black ring-opacity-5 rounded-lg shadow-2xl will-change-[opacity,transform] z-[100] overflow-hidden origin-center data-[state=open]:animate-[fadeInScale_100ms] data-[state=closed]:animate-[fadeOutScale_100ms]"
+        data-slot="content"
+        data-selection
+        class="z-[100] origin-[var(--reka-select-content-transform-origin)]"
       >
-        <SelectViewport class="p-1 flex flex-col">
-          <SelectItem
-            v-for="option in selectOptions"
-            :disabled="option.disabled"
-            :key="option.value"
-            :value="option.value"
-            :class="[sizeClasses, paddingClasses, fontSizeClasses]"
-            class="text-base text-ink-gray-9 flex items-center data-[highlighted]:bg-surface-gray-2 border-0 data-[state=checked]:bg-surface-gray-2 data-[disabled]:text-ink-gray-4 select-none"
-          >
-            <SelectItemText>
-              <slot name="option" v-bind="{ option }">{{ option.label }}</slot>
-            </SelectItemText>
-            <SelectItemIndicator :as="LucideCheck" class="size-4 ml-auto" />
-          </SelectItem>
-          <slot name="footer" />
-        </SelectViewport>
+        <div
+          data-slot="content-body"
+          :data-motion="contentMotion"
+          class="overflow-hidden rounded-lg bg-surface-modal shadow-2xl ring-1 ring-black ring-opacity-5 will-change-[opacity,transform] origin-[var(--reka-select-content-transform-origin)]"
+        >
+          <SelectViewport class="flex flex-col p-1">
+            <div
+              v-if="!selectOptions.length"
+              data-slot="empty"
+              class="px-2 py-1.5 text-base text-ink-gray-5"
+            >
+              <slot name="empty">{{ emptyText }}</slot>
+            </div>
+
+            <template v-else>
+              <SelectItem
+                v-for="(internalOption, index) in internalOptions"
+                :key="getOptionKey(internalOption.option, index)"
+                :disabled="internalOption.option.disabled"
+                :value="internalOption.internalValue"
+                data-slot="item"
+                :class="itemRootClasses"
+                class="select-none rounded border-0 text-base text-ink-gray-9 data-[disabled]:text-ink-gray-4 data-[highlighted]:bg-surface-gray-2 data-[state=checked]:bg-surface-gray-3 data-[highlighted]:data-[state=checked]:bg-surface-gray-4"
+              >
+                <ItemListRow
+                  :size="itemSize"
+                  :selected="internalOption.option.value === model"
+                  :disabled="internalOption.option.disabled"
+                >
+                  <template #prefix>
+                    <!--
+                      v-if chain (not unconditional slot + v-if icon) so that
+                      with neither a consumer `#item-prefix` slot nor an
+                      `option.icon`, the prefix template renders only
+                      comment vnodes. Otherwise the unconditional `<slot>` /
+                      `<OptionIcon>` leaves a real vnode in the tree,
+                      `hasRenderableContent` returns true, and ItemListRow
+                      paints an empty prefix container — visible as a
+                      stray left gap from the parent's `gap-2`.
+
+                      Auto-render `option.icon` when the consumer doesn't
+                      provide `#item-prefix`. `lucide-*` strings route
+                      through the Tailwind plugin; component values render
+                      directly.
+                    -->
+                    <slot
+                      v-if="slots['item-prefix']"
+                      name="item-prefix"
+                      v-bind="{ item: internalOption.option, option: internalOption.option }"
+                    />
+                    <OptionIcon
+                      v-else-if="internalOption.option.icon"
+                      :icon="internalOption.option.icon"
+                    />
+                  </template>
+
+                  <template #label>
+                    <!--
+                      SelectItemText must wrap the visible label so reka's
+                      item-aligned positioning uses the on-screen label rect.
+                      Previously rendered as `sr-only`, which gave a 1x1 rect
+                      and mis-anchored the popup (prefix not covered).
+                    -->
+                    <SelectItemText as="div" class="min-w-0">
+                      <slot
+                        v-if="
+                          getOptionSlotName(internalOption.option) &&
+                          slots[getOptionSlotName(internalOption.option)!]
+                        "
+                        :name="getOptionSlotName(internalOption.option)!"
+                        v-bind="{ item: internalOption.option, option: internalOption.option }"
+                      />
+                      <slot
+                        v-else
+                        name="item-label"
+                        v-bind="{ item: internalOption.option, option: internalOption.option }"
+                      >
+                        <slot
+                          name="option"
+                          v-bind="{ item: internalOption.option, option: internalOption.option }"
+                        >
+                          <div class="truncate">
+                            {{ internalOption.option.label }}
+                          </div>
+                          <div
+                            v-if="internalOption.option.description"
+                            class="truncate text-p-sm text-ink-gray-5"
+                          >
+                            {{ internalOption.option.description }}
+                          </div>
+                        </slot>
+                      </slot>
+                    </SelectItemText>
+                  </template>
+
+                  <template #suffix>
+                    <slot
+                      name="item-suffix"
+                      v-bind="{ item: internalOption.option, option: internalOption.option }"
+                    />
+                    <SelectItemIndicator
+                      class="ml-1 inline-flex items-center justify-center"
+                    >
+                      <span class="lucide-check size-4 text-ink-gray-6" />
+                    </SelectItemIndicator>
+                  </template>
+                </ItemListRow>
+              </SelectItem>
+            </template>
+
+            <div v-if="$slots.footer" data-slot="footer">
+              <slot name="footer" />
+            </div>
+          </SelectViewport>
+        </div>
       </SelectContent>
     </SelectPortal>
   </SelectRoot>
+    <InputDescription
+      v-if="showDescription || $slots.description"
+      :id="descriptionId"
+      :description="description"
+    >
+      <slot v-if="$slots.description" name="description" />
+    </InputDescription>
+    <InputError v-if="hasError" :id="errorMessageId" :lines="errorLines" />
+  </LabelingWrapper>
 </template>
 
 <style scoped>
@@ -143,28 +480,23 @@ defineSlots<{
 [data-state='checked'] {
   outline: none !important;
 }
-</style>
 
-<style>
-@keyframes fadeInScale {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+/*
+ * The outer item row paints its own bg via data-[highlighted] /
+ * data-[state=checked] utilities — including the combined hover+selected
+ * state. Clear ItemListRow's own bg so the outer color always shows
+ * through; text emphasis on selected stays.
+ */
+[data-slot='item'] [data-slot='item-list-row'] {
+  background-color: transparent;
 }
 
-@keyframes fadeOutScale {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.95);
-  }
+.select-trigger-sizer::after {
+  content: attr(data-width-text);
+  display: block;
+  height: 0;
+  overflow: hidden;
+  white-space: pre;
+  visibility: hidden;
 }
 </style>
