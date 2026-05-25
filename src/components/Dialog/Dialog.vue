@@ -1,6 +1,6 @@
 <template>
   <DialogRoot v-model:open="isOpen">
-    <DialogPortal>
+    <DialogPortal :to="portalTarget">
       <DialogOverlay
         class="fixed inset-0 bg-black-overlay-200 dark:bg-black-overlay-700 overflow-y-auto dialog-overlay outline-none"
         :data-dialog="resolved.title"
@@ -169,6 +169,7 @@ import {
 import { computed, reactive, ref, useSlots, watchEffect } from 'vue'
 import type { ComponentPublicInstance } from 'vue'
 import { useAutofocusOnOpen } from '../../composables/useAutofocusOnOpen'
+import { usePortalTarget } from '../../composables/usePortalTarget'
 import { Button } from '../Button'
 import FeatherIcon from '../FeatherIcon.vue'
 import {
@@ -209,6 +210,14 @@ const props = withDefaults(defineProps<DialogProps>(), {
 const emit = defineEmits<DialogEmits>()
 
 const slots = defineSlots<DialogSlots>()
+
+// Resolved at component create-time so it stays stable for the life of
+// this Dialog instance. Embedding apps (e.g. Frappe Desk) provide a
+// container inside their scoped `[data-frappe-ui]` subtree so the dialog
+// overlay inherits the design-system styling rather than landing at
+// bare `<body>`. Standalone apps return `undefined`, and reka-ui's
+// `<DialogPortal>` falls back to `<body>` itself.
+const portalTarget = usePortalTarget()
 
 // Deprecation warnings for legacy surfaces.
 watchEffect(() => {

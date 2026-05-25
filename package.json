@@ -18,7 +18,6 @@
     "release-patch": "yarn version --patch && git push && git push --tags",
     "dev": "vite",
     "build": "vite build",
-    "build:desk": "vite build --config vite.config.desk.ts",
     "preview": "vite preview",
     "docs:dev": "vitepress dev docs --host",
     "docs:build": "vitepress build docs",
@@ -30,16 +29,6 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
-    },
-    "./desk": {
-      "import": "./dist/desk/index.js",
-      "require": "./dist/desk/index.js",
-      "default": "./dist/desk/index.js",
-      "types": "./src/desk/index.ts"
-    },
-    "./desk/style.css": {
-      "import": "./dist/desk/style.css",
-      "default": "./dist/desk/style.css"
     },
     "./frappe": {
       "import": "./frappe/index.js"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { TooltipArrow, TooltipContent, TooltipPortal } from 'reka-ui'
+import { usePortalTarget } from '../../composables/usePortalTarget'
 
 /**
  * Renders the styled tooltip popover (portal + content + arrow) so the
@@ -32,10 +33,15 @@ defineSlots<{
   /** Replaces the entire bubble (including its shell) — arrow still renders. */
   body?: () => any
 }>()
+
+// See Combobox.vue for the embedding rationale. Tooltip has no `portalTo`
+// prop today (uniform look across the app is the goal); host injection is
+// the only override.
+const portalTarget = usePortalTarget()
 </script>
 
 <template>
-  <TooltipPortal>
+  <TooltipPortal :to="portalTarget">
     <TooltipContent :side="side" :side-offset="4" class="z-[100]">
       <slot name="body">
         <div

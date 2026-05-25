@@ -23,6 +23,7 @@ import {
   normalizeDropdownOptions,
   type NormalizedDropdownGroup,
 } from './utils'
+import { usePortalTarget } from '../../composables/usePortalTarget'
 
 defineOptions({
   name: 'DropdownMenuList',
@@ -37,9 +38,14 @@ const props = withDefaults(
   }>(),
   {
     groups: () => [],
-    portalTo: 'body',
+    // Default `undefined` so a host's `usePortalTarget()` wins; the
+    // parent `Dropdown.vue` already resolves it once and passes through.
+    portalTo: undefined,
   },
 )
+
+const _hostPortalTarget = usePortalTarget()
+const effectivePortalTo = computed(() => props.portalTo ?? _hostPortalTarget)
 
 const router = useRouter()
 
@@ -105,7 +111,7 @@ async function handleItemSelect(item: DropdownOption, event: Event) {
             />
           </DropdownMenuSubTrigger>
 
-          <DropdownMenuPortal :to="portalTo">
+          <DropdownMenuPortal :to="effectivePortalTo">
             <DropdownMenuSubContent
               data-slot="content"
               :class="dropdownClasses.content"
@@ -113,7 +119,7 @@ async function handleItemSelect(item: DropdownOption, event: Event) {
             >
               <DropdownMenuList
                 :groups="normalizeDropdownOptions(item.submenu)"
-                :portal-to="portalTo"
+                :portal-to="effectivePortalTo"
                 :close="close"
                 :slot-fns="slotFns"
               />

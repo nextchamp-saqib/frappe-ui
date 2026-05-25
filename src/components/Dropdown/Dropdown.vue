@@ -15,7 +15,7 @@
       </Button>
     </DropdownMenuTrigger>
 
-    <DropdownMenuPortal :to="portalTo">
+    <DropdownMenuPortal :to="effectivePortalTo">
       <DropdownMenuContent
         data-slot="content"
         :data-motion="contentMotion"
@@ -33,7 +33,7 @@
       >
         <DropdownMenuList
           :groups="groups"
-          :portal-to="portalTo"
+          :portal-to="effectivePortalTo"
           :close="close"
           :slot-fns="slots"
         />
@@ -55,6 +55,7 @@ import DropdownMenuList from './DropdownMenuList.vue'
 import type { DropdownProps, DropdownSlots } from './types'
 import { dropdownClasses, normalizeDropdownOptions } from './utils'
 import { usePopoverMotion } from '../../composables/usePopoverMotion'
+import { usePortalTarget } from '../../composables/usePortalTarget'
 
 defineOptions({
   inheritAttrs: false,
@@ -71,8 +72,13 @@ const props = withDefaults(defineProps<DropdownProps>(), {
   options: () => [],
   side: 'bottom',
   offset: 4,
-  portalTo: 'body',
+  // Default `undefined` so a host's `usePortalTarget()` wins; explicit
+  // `portalTo` still overrides. See Combobox.vue for rationale.
+  portalTo: undefined,
 })
+
+const _hostPortalTarget = usePortalTarget()
+const effectivePortalTo = computed(() => props.portalTo ?? _hostPortalTarget)
 
 function close() {
   openModel.value = false

@@ -13,6 +13,7 @@ import LoadingIndicator from '../LoadingIndicator.vue'
 import MultiSelectResults from './MultiSelectResults.vue'
 import { usePopoverMotion } from '../../composables/usePopoverMotion'
 import { useInputLabeling } from '../../composables/useInputLabeling'
+import { usePortalTarget } from '../../composables/usePortalTarget'
 import { useEmptyValueMapping } from '../shared/selection/useEmptyValueMapping'
 import { useFilteredGroups } from '../shared/selection/useFilteredGroups'
 import OptionIcon from '../shared/selection/OptionIcon.vue'
@@ -55,12 +56,17 @@ const props = withDefaults(defineProps<MultiSelectProps>(), {
   side: 'bottom',
   align: 'start',
   offset: 4,
-  portalTo: 'body',
+  // Default to `undefined` so a host's `usePortalTarget()` wins;
+  // explicit `portalTo` still overrides. See Combobox.vue for rationale.
+  portalTo: undefined,
 })
 
 const emit = defineEmits<MultiSelectEmits>()
 const attrs = useAttrs()
 const slots = useSlots()
+
+const _hostPortalTarget = usePortalTarget()
+const effectivePortalTo = computed(() => props.portalTo ?? _hostPortalTarget)
 
 const model = defineModel<string[]>({ default: () => [] })
 const open = defineModel<boolean>('open', { default: false })
@@ -410,7 +416,7 @@ defineSlots<MultiSelectSlots>()
       </button>
     </ComboboxAnchor>
 
-    <ComboboxPortal :to="portalTo">
+    <ComboboxPortal :to="effectivePortalTo">
       <ComboboxContent
         data-slot="content"
         data-selection

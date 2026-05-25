@@ -2,6 +2,7 @@
 import { computed, useAttrs, useSlots } from 'vue'
 import { usePopoverMotion } from '../../composables/usePopoverMotion'
 import { useInputLabeling } from '../../composables/useInputLabeling'
+import { usePortalTarget } from '../../composables/usePortalTarget'
 import { useEmptyValueMapping } from '../shared/selection/useEmptyValueMapping'
 import type {
   SelectNormalizedOption,
@@ -47,6 +48,10 @@ defineOptions({
 
 const model = defineModel<SelectOptionValue | undefined>()
 const open = defineModel<boolean>('open', { default: false })
+
+// See Combobox.vue for the embedding rationale. Select doesn't expose
+// a `portalTo` prop today, so host injection is the only override.
+const portalTarget = usePortalTarget()
 
 const props = withDefaults(defineProps<SelectProps>(), {
   size: 'sm',
@@ -340,7 +345,7 @@ defineSlots<SelectSlots>()
       </template>
     </SelectTrigger>
 
-    <SelectPortal>
+    <SelectPortal :to="portalTarget">
       <SelectContent
         data-slot="content"
         data-selection

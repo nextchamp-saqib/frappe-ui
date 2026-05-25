@@ -41,7 +41,7 @@
         </slot>
       </div>
     </PopoverAnchor>
-    <PopoverPortal>
+    <PopoverPortal :to="portalTarget">
       <PopoverContent
         data-slot="content"
         data-selection
@@ -77,6 +77,7 @@ import {
 import { TextInput } from '../../TextInput'
 import LucideChevronDown from '~icons/lucide/chevron-down'
 import { usePopoverMotion } from '../../../composables/usePopoverMotion'
+import { usePortalTarget } from '../../../composables/usePortalTarget'
 import type { InputSize, InputVariant } from '../../../composables/inputTypes'
 import type { FrappeUIError } from '../../../composables/useInputLabeling'
 import '../selection/popoverMotion.css'
@@ -120,6 +121,11 @@ const props = withDefaults(defineProps<Props>(), {
   displayLabel: '',
   contentClass: '',
 })
+
+// Resolve the host-supplied portal target (Frappe Desk supplies one so
+// the popover stays inside `[data-frappe-ui]` styling). Standalone apps
+// don't provide and the `<PopoverPortal>` falls back to `<body>`.
+const portalTarget = usePortalTarget()
 
 const emit = defineEmits<{
   (e: 'focus'): void

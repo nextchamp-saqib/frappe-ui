@@ -22,6 +22,7 @@ import '../shared/selection/popoverMotion.css'
 import ComboboxResults from './ComboboxResults.vue'
 import { usePopoverMotion } from '../../composables/usePopoverMotion'
 import { useInputLabeling } from '../../composables/useInputLabeling'
+import { usePortalTarget } from '../../composables/usePortalTarget'
 import { useEmptyValueMapping } from '../shared/selection/useEmptyValueMapping'
 import { useFilteredGroups } from '../shared/selection/useFilteredGroups'
 import {
@@ -70,7 +71,11 @@ const props = withDefaults(defineProps<ComboboxProps>(), {
   openOnClick: true,
   side: 'bottom',
   offset: 4,
-  portalTo: 'body',
+  // Default to `undefined` so an embedding app's `usePortalTarget()`
+  // (e.g. Frappe Desk's `[data-frappe-ui]` portal) wins. Callers that
+  // pass `portalTo` explicitly still take precedence over both. When
+  // both are absent, reka-ui's own `<ComboboxPortal>` defaults to body.
+  portalTo: undefined,
   allowCustomValue: false,
   loading: false,
   emptyText: 'No results',
@@ -79,6 +84,14 @@ const props = withDefaults(defineProps<ComboboxProps>(), {
 const emit = defineEmits<ComboboxEmits>()
 const attrs = useAttrs()
 const slots = useSlots()
+
+// Resolved at component create-time. Precedence:
+//   1. Explicit `portalTo` prop (user wins outright)
+//   2. Host-app inject via `usePortalTarget()`
+//   3. Undefined → reka-ui's `<ComboboxPortal>` falls back to body
+// See PLAN-DESK-INTEGRATION.md for the embedding rationale.
+const _hostPortalTarget = usePortalTarget()
+const effectivePortalTo = computed(() => props.portalTo ?? _hostPortalTarget)
 
 const model = defineModel<string | null>({ default: null })
 
@@ -641,7 +654,7 @@ defineSlots<ComboboxSlots>()
       </ComboboxAnchor>
     </template>
 
-    <ComboboxPortal :to="portalTo">
+    <ComboboxPortal :to="effectivePortalTo">
       <ComboboxContent
         data-slot="content"
         data-selection
